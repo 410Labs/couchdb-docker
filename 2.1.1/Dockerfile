@@ -80,6 +80,7 @@ RUN set -xe \
   done
 
 ENV COUCHDB_VERSION 2.1.1
+ENV COUCHDB_COMMIT 302bd8b8b193186b920c56c918bb2bb7edc4be8a
 
 # Download dev dependencies
 RUN buildDeps=' \
@@ -91,15 +92,16 @@ RUN buildDeps=' \
     libicu-dev \
     libmozjs185-dev \
     make \
+    git \
+    nodejs \
   ' \
+ && curl -sL https://deb.nodesource.com/setup_8.x | bash - \
  && apt-get update -y -qq && apt-get install -y --no-install-recommends $buildDeps \
  # Acquire CouchDB source code
- && cd /usr/src && mkdir couchdb \
- && curl -fSL https://dist.apache.org/repos/dist/release/couchdb/source/$COUCHDB_VERSION/apache-couchdb-$COUCHDB_VERSION.tar.gz -o couchdb.tar.gz \
- && curl -fSL https://dist.apache.org/repos/dist/release/couchdb/source/$COUCHDB_VERSION/apache-couchdb-$COUCHDB_VERSION.tar.gz.asc -o couchdb.tar.gz.asc \
- && gpg --batch --verify couchdb.tar.gz.asc couchdb.tar.gz \
- && tar -xzf couchdb.tar.gz -C couchdb --strip-components=1 \
+ && cd /usr/src \
+ && git clone https://github.com/apache/couchdb.git \
  && cd couchdb \
+ && git reset --hard $COUCHDB_COMMIT \
  # Build the release and install into /opt
  && ./configure --disable-docs \
  && make release \
