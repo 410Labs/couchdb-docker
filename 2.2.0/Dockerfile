@@ -46,7 +46,6 @@ RUN set -ex; \
 	wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc"; \
 	export GNUPGHOME="$(mktemp -d)"; \
 	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
-	gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
 	rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc; \
 	chmod +x /usr/local/bin/gosu; \
 	gosu nobody true; \
@@ -81,7 +80,8 @@ RUN set -xe \
     gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
   done
 
-ENV COUCHDB_VERSION 2.2.0
+ENV COUCHDB_VERSION 2.2.0-RC3
+ENV COUCHDB_COMMIT fd9f21eff44f638e1ad96c2e59a60dfa9a46676a
 
 # Download dev dependencies
 RUN buildDeps=' \
@@ -93,15 +93,16 @@ RUN buildDeps=' \
     libicu-dev \
     libmozjs185-dev \
     make \
+    git \
+    nodejs \
   ' \
+ && curl -sL https://deb.nodesource.com/setup_8.x | bash - \
  && apt-get update -y -qq && apt-get install -y --no-install-recommends $buildDeps \
  # Acquire CouchDB source code
- && cd /usr/src && mkdir couchdb \
- && curl -fSL https://dist.apache.org/repos/dist/release/couchdb/source/$COUCHDB_VERSION/apache-couchdb-$COUCHDB_VERSION.tar.gz -o couchdb.tar.gz \
- && curl -fSL https://dist.apache.org/repos/dist/release/couchdb/source/$COUCHDB_VERSION/apache-couchdb-$COUCHDB_VERSION.tar.gz.asc -o couchdb.tar.gz.asc \
- && gpg --batch --verify couchdb.tar.gz.asc couchdb.tar.gz \
- && tar -xzf couchdb.tar.gz -C couchdb --strip-components=1 \
+ && cd /usr/src \
+ && git clone https://github.com/apache/couchdb.git \
  && cd couchdb \
+ && git reset --hard $COUCHDB_COMMIT \
  # Build the release and install into /opt
  && ./configure --disable-docs \
  && make release \
